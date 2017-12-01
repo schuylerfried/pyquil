@@ -73,7 +73,7 @@ def to_latex(circuit):
 #         json.dump(settings, settings_file, sort_keys=True, indent=4)
 #     return settings
 
-command = namedtuple("command", ("gate", "lines", "ctrl_lines"))
+command = namedtuple("command", ("gate", "lines", "ctrl_lines", "actual_lines"))
 
 
 def _body(circuit, settings):
@@ -97,19 +97,22 @@ p
             project_q_circuit[qubit] = []
 
     # Add alloc
-    for k, v in list(project_q_circuit.iteritems()):
-        v.append(command("ALLOCATE", [k], []))
+    for k, v in list(project_q_circuit.items()):
+        v.append(command("ALLOCATE", [k], [], [k]))
 
     # Single qubit gates
     for inst in circuit:
-        print(project_q_circuit)
+        #print(project_q_circuit)
+        print(inst[1].qubits())
         qubits = inst[1].qubits()
         gate = inst[1].operator_name
         if len(qubits) == 1:
             for qubit in qubits:
-                project_q_circuit[qubit].append(command(gate, [qubit], []))
+                project_q_circuit[qubit].append(command(gate, [qubit], [], [qubit]))
         else:
-            lines = copy(inst[1].arguments)
+            import pdb
+            pdb.set_trace()
+            lines = [qubit.index() for qubit in copy(inst[1].arguments)]
             possible_lines = range(min(lines), max(lines) + 1)
             final_lines = []
             for line in possible_lines:
@@ -117,10 +120,10 @@ p
                     final_lines.append(line)
             for i, qubit in enumerate(final_lines):
                 if gate == "CZ":
-                    project_q_circuit[qubit].append(command("Z", inst[1].arguments[:1],
-                                                            inst[1].arguments[1:]))
+                    project_q_circuit[qubit].append(command("Z", [qubit.index() for qubit in inst[1].arguments[:1]],
+                                                            [qubit.index() for qubit in inst[1].arguments[1:]], lines))
                 else:
-                    project_q_circuit[qubit].append(command(gate, final_lines, []))
+                    project_q_circuit[qubit].append(command(gate, final_lines, [], lines))
 
     # Move indices to 0
     relabeled_circuit = {}
@@ -140,8 +143,6 @@ p
     #     v.append(command("DEALLOCATE", [k], []))
     print(relabeled_circuit)
     conv = _Circ2Tikz(settings, len(relabeled_circuit.keys()))
-    import pdb
-    pdb.set_trace()
     for line in relabeled_circuit.keys():
         code.append(conv.to_tikz(line, relabeled_circuit))
 
@@ -203,8 +204,6 @@ class _Circ2Tikz(object):
             all_lines.remove(line)  # remove current line
             for l in all_lines:
                 gate_idx = 0
-                import pdb
-                pdb.set_trace()
                 while not (circuit[l][gate_idx] == cmds[i]):
                     gate_idx += 1
 
@@ -286,7 +285,7 @@ class _Circ2Tikz(object):
             else:
                 # regular gate must draw the lines it does not act upon
                 # if it spans multiple qubits
-                add_str = self._regular_gate(gate, lines, ctrl_lines)
+                add_str = self._regular_gate(gate, lines, ctrl_lines, cmds[i].actual_lines)
                 for l in lines:
                     self.is_quantum[l] = True
 
@@ -561,7 +560,7 @@ class _Circ2Tikz(object):
                                          loc1=loc1, loc2=loc2)
             return edges_str
 
-    def _regular_gate(self, gate, lines, ctrl_lines):
+    def _regular_gate(self, gate, lines, ctrl_lines, actual_lines):
         """
         Draw a regular gate.
 
@@ -569,6 +568,7 @@ class _Circ2Tikz(object):
             gate: Gate to draw.
             lines (list<int>): Lines the gate acts on.
             ctrl_lines (list<int>): Control lines.
+            actual_lines (list<int>): The lines that are actually involved in the gate.
 
         Returns:
             tex_str (string): Latex string drawing a regular gate at the given
@@ -593,7 +593,7 @@ class _Circ2Tikz(object):
         node_str = "\n\\node[none] ({}) at ({},-{}) {{}};"
         for l in lines:
             node1 = node_str.format(self._op(l), pos, l)
-            if l in gate_lines:
+            if l in actual_lines:
                 tex_str += self._phase(l, pos)
 
             node2 = ("\n\\node[none,minimum height={}cm,outer sep=0] ({}) at"
@@ -604,8 +604,6 @@ class _Circ2Tikz(object):
                                     pos + gate_width, l)
             tex_str += node1 + node2 + node3
             if l not in gate_lines:
-                import pdb
-                pdb.set_trace()
                 tex_str += self._line(self.op_count[l] - 1, self.op_count[l],
                                       line=l)
 
