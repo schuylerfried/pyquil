@@ -87,14 +87,13 @@ p
     Returns:
         tex_str (string): Latex string to draw the entire circuit.
     """
-    circuit.synthesize()
     code = []
     project_q_circuit  = {}
     # Allocate each qubit
     for inst in circuit:
-        qubits = inst[1].qubits()
+        qubits = inst.qubits
         for qubit in qubits:
-            project_q_circuit[qubit] = []
+            project_q_circuit[qubit.index] = []
 
     # Add alloc
     for k, v in list(project_q_circuit.items()):
@@ -103,16 +102,13 @@ p
     # Single qubit gates
     for inst in circuit:
         #print(project_q_circuit)
-        print(inst[1].qubits())
-        qubits = inst[1].qubits()
-        gate = inst[1].operator_name
+        qubits = [qubit.index for qubit in inst.qubits]
+        gate = inst.name
         if len(qubits) == 1:
             for qubit in qubits:
                 project_q_circuit[qubit].append(command(gate, [qubit], [], [qubit]))
         else:
-            import pdb
-            pdb.set_trace()
-            lines = [qubit.index() for qubit in copy(inst[1].arguments)]
+            lines = [qubit for qubit in copy(qubits)]
             possible_lines = range(min(lines), max(lines) + 1)
             final_lines = []
             for line in possible_lines:
@@ -120,8 +116,8 @@ p
                     final_lines.append(line)
             for i, qubit in enumerate(final_lines):
                 if gate == "CZ":
-                    project_q_circuit[qubit].append(command("Z", [qubit.index() for qubit in inst[1].arguments[:1]],
-                                                            [qubit.index() for qubit in inst[1].arguments[1:]], lines))
+                    project_q_circuit[qubit].append(command("Z", qubits[:1],
+                                                            qubits[1:], lines))
                 else:
                     project_q_circuit[qubit].append(command(gate, final_lines, [], lines))
 
@@ -607,9 +603,9 @@ class _Circ2Tikz(object):
                 tex_str += self._line(self.op_count[l] - 1, self.op_count[l],
                                       line=l)
 
-        tex_str += ("\n\\draw[operator,edgestyle,outer sep={width}cm] (["
-                    "yshift={half_height}cm]{op1}) rectangle ([yshift=-"
-                    "{half_height}cm]{op2}) node[pos=.5] {{{name}}};"
+        tex_str += ("\n\\draw[operator,edgestyle,outer sep={width}cm]"
+                    " ([yshift={half_height}cm]{op1})"
+                    " rectangle ([yshift=-{half_height}cm]{op2}) node[pos=.5] {{\\rotatebox{{90}}{{{name}}}}};"
                     ).format(width=gate_width, op1=self._op(imin),
                              op2=self._op(imax, offset=2),
                              half_height=.5 * gate_height,
