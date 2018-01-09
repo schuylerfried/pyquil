@@ -63,7 +63,7 @@ def get_default_settings():
     return settings
 
 
-def _header(settings):
+def header(settings):
     """
     Writes the Latex header using the settings file.
 
@@ -119,7 +119,7 @@ def _header(settings):
     return "\n".join(("\n".join(packages), "\n".join(init), gate_style, edge_style))
 
 
-def _footer():
+def footer():
     """
     Return the footer of the LaTeX document.
 
