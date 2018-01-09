@@ -1,3 +1,20 @@
+##############################################################################
+# Copyright 2016-2017 Rigetti Computing
+#
+#    Licensed under the Apache License, Version 2.0 (the "License");
+#    you may not use this file except in compliance with the License.
+#    You may obtain a copy of the License at
+#
+#        http://www.apache.org/licenses/LICENSE-2.0
+#
+#    Unless required by applicable law or agreed to in writing, software
+#    distributed under the License is distributed on an "AS IS" BASIS,
+#    WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+#    See the License for the specific language governing permissions and
+#    limitations under the License.
+##############################################################################
+# THIS FILE IS DERIVED AND MODIFIED FROM PROJECTQ. COPYRIGHT PROVIDED HERE:
+#
 #   Copyright 2017 ProjectQ-Framework (www.projectq.ch)
 #
 #   Licensed under the Apache License, Version 2.0 (the "License");
@@ -11,6 +28,7 @@
 #   WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
 #   See the License for the specific language governing permissions and
 #   limitations under the License.
+##############################################################################
 from copy import copy
 
 from .latex_config import get_default_settings, _header, _footer
@@ -45,33 +63,11 @@ def to_latex(circuit):
         tex_doc_str (string): Latex document string which can be compiled
             using, e.g., pdflatex.
     """
-    # try:
-    #     FileNotFoundError
-    # except NameError:
-    #     FileNotFoundError = IOError  # for Python2 compatibility
-    #
-    # try:
-    #     with open('settings.json') as settings_file:
-    #         settings = json.load(settings_file)
-    # except FileNotFoundError:
-    #     settings = write_settings(get_default_settings())
     settings = get_default_settings()
     text = _header(settings)
     text += _body(circuit, settings)
     text += _footer()
     return text
-
-
-# def write_settings(settings):
-#     """
-#     Write all settings to a json-file.
-#
-#     Args:
-#         settings (dict): Settings dict to write.
-#     """
-#     with open('settings.json', 'w') as settings_file:
-#         json.dump(settings, settings_file, sort_keys=True, indent=4)
-#     return settings
 
 command = namedtuple("command", ("gate", "lines", "ctrl_lines", "actual_lines"))
 
