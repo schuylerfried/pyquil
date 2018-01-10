@@ -94,9 +94,9 @@ def header(settings):
         gate_style += "basicshadow"
     gate_style += "]\n"
 
-    gate_style += ("\\tikzstyle{operator}=[basic,minimum size=1.5em]\n\\tikzstyle{phase}=[fill=black,shape=circle,"
-                   + "minimum size={}".format(settings.get('control', {}).get('size', 0))
-                   + "cm,inner sep=0pt,outer sep=0pt,draw=black")
+    gate_style += ("\\tikzstyle{{operator}}=[basic,minimum size=1.5em]\n\\tikzstyle{{phase}}=[fill=black,shape=circle,"
+                   "minimum size={}"
+                   "cm,inner sep=0pt,outer sep=0pt,draw=black").format(settings.get('control', {}).get('size', 0))
     if settings.get('control', {}).get('shadow'):
         gate_style += ",basicshadow"
     gate_style += ("]\n\\tikzstyle{none}=[inner sep=0pt,outer sep=-.5pt,"
@@ -127,4 +127,3 @@ def footer():
     :rtype: string
     """
     return "\end{tikzpicture}\n\end{document}"
-
