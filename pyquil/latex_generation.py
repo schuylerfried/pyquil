@@ -34,6 +34,7 @@
 from copy import copy
 
 from pyquil.latex_config import get_default_settings, header, footer
+from pyquil.quil import Measurement
 from collections import namedtuple
 
 
@@ -57,6 +58,7 @@ command = namedtuple("command", ("gate", "lines", "ctrl_lines", "used_lines"))
 """command is used as an intermediate representation to hold meta-information about the circuit, and dependencies."""
 ALLOCATE = "ALLOCATE"
 CZ = "CZ"
+CNOT = "CNOT"
 Z = "Z"
 SWAP = "SWAP"
 MEASURE = "MEASURE"
@@ -78,7 +80,11 @@ def body(circuit, settings):
 
     # Allocate each qubit.
     for inst in circuit:
-        qubits = inst.qubits
+        if isinstance(inst, Measurement):
+            inst.qubits = [inst.qubit]
+            inst.name = "MEASURE"
+        else:
+            qubits = inst.qubits
         for qubit in qubits:
             qubit_instruction_mapping[qubit.index] = []
     for k, v in list(qubit_instruction_mapping.items()):
@@ -105,7 +111,13 @@ def body(circuit, settings):
 
             for i, qubit in enumerate(all_lines):
                 if gate == CZ:
-                    qubit_instruction_mapping[qubit].append(command(Z, qubits[:1], qubits[1:], explicit_lines))
+                    ctrl_lines = list(all_lines)
+                    ctrl_lines.remove(qubits[0])
+                    qubit_instruction_mapping[qubit].append(command(Z, qubits[:1], ctrl_lines, explicit_lines))
+                elif gate == CNOT:
+                    ctrl_lines = list(all_lines)
+                    ctrl_lines.remove(qubits[0])
+                    qubit_instruction_mapping[qubit].append(command(X, qubits[:1], ctrl_lines, explicit_lines))
                 else:
                     qubit_instruction_mapping[qubit].append(command(gate, all_lines, [], explicit_lines))
 
@@ -551,15 +563,16 @@ class CircuitTikzGenerator(object):
         for l in lines:
             self.pos[l] = pos + gate_width / 2.
             self.op_count[l] += 1
-        for ctrl in ctrl_lines:
-            if ctrl not in lines:
-                tex_str += self._phase(ctrl, pos + gate_width / 2.)
-                connect_to = imax
-                if abs(connect_to - ctrl) > abs(imin - ctrl):
-                    connect_to = imin
-                tex_str += self._line(ctrl, connect_to)
-                self.pos[ctrl] = pos + delta_pos + gate_width
-                self.op_count[ctrl] += 1
+        # For arbitrary control gates
+        # for ctrl in ctrl_lines:
+        #     if ctrl not in lines:
+        #         tex_str += self._phase(ctrl, pos + gate_width / 2.)
+        #         connect_to = imax
+        #         if abs(connect_to - ctrl) > abs(imin - ctrl):
+        #             connect_to = imin
+        #         tex_str += self._line(ctrl, connect_to)
+        #         self.pos[ctrl] = pos + delta_pos + gate_width
+        #         self.op_count[ctrl] += 1
         for l in lines:
             self.op_count[l] += 2
         for l in range(min(ctrl_lines + lines), max(ctrl_lines + lines) + 1):
